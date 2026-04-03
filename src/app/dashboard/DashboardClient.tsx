@@ -19,10 +19,10 @@ export default function DashboardClient({ profile, usage }: Props) {
   const [subject, setSubject] = useState('')
   const router = useRouter()
 
-  const firstName = profile?.full_name?.split(' ')[0] ?? 'là'
-  const isSubscribed = profile?.subscription_type !== 'free'
-  const genUsed = usage.generation_count
-  const canGenerate = isSubscribed || genUsed < FREE_GEN_LIMIT
+  const firstName = 'toi'
+  const isSubscribed = false
+  const genUsed = 0
+  const canGenerate = true
 
   function handleGenerate() {
     if (!subject.trim()) return
