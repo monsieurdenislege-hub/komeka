@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: #0E0F14;
+    color: #F0F0F5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: #0E0F14;
+    color: #F0F0F5;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #161820; }
+  ::-webkit-scrollbar-thumb { background: #2a2d3e; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #F5A623; }
+}
+
+@layer utilities {
+  .font-serif { font-family: Georgia, "Times New Roman", serif; }
+  .font-mono-custom { font-family: "Courier New", Courier, monospace; }
+
+  .btn-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shimmer::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: shimmer 2.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 200%; }
+  }
+
+  .cursor-blink::after {
+    content: "▋";
+    color: #6C8EF5;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  .dot-1 { animation: dot-pulse 1.5s infinite ease-in-out; }
+  .dot-2 { animation: dot-pulse 1.5s 0.2s infinite ease-in-out; }
+  .dot-3 { animation: dot-pulse 1.5s 0.4s infinite ease-in-out; }
+
+  @keyframes ring-pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  .ring-1 { animation: ring-pulse 2s infinite ease-out; }
+  .ring-2 { animation: ring-pulse 2s 0.5s infinite ease-out; }
+  .ring-3 { animation: ring-pulse 2s 1s infinite ease-out; }
+
+  @keyframes score-fill {
+    from { stroke-dashoffset: 283; }
+    to { stroke-dashoffset: var(--dash-offset, 71); }
+  }
+  .score-circle { animation: score-fill 1.5s ease-out forwards; }
+
+  @keyframes float-orb {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+  }
+  .float-orb { animation: float-orb 6s ease-in-out infinite; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+}
