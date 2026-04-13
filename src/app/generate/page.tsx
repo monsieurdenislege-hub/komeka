@@ -91,14 +91,23 @@ function GenerateContent() {
     }
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!content || saved) return
     try {
-      await fetch('/api/essays', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, content, type: 'generated' }),
-      })
+      const newEssay = {
+        id: crypto.randomUUID(),
+        user_id: 'demo',
+        subject,
+        content,
+        type: 'generated' as const,
+        score: null,
+        score_feedback: null,
+        created_at: new Date().toISOString(),
+      }
+      const stored = localStorage.getItem('legebot_essays')
+      const essays = stored ? JSON.parse(stored) : []
+      essays.unshift(newEssay)
+      localStorage.setItem('legebot_essays', JSON.stringify(essays))
       setSaved(true)
     } catch (err) {
       console.error(err)

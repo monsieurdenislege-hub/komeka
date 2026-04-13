@@ -1,26 +1,17 @@
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
 import EssayViewerClient from './EssayViewerClient'
 
+// Mode démo : essay stocké en localStorage côté client
 interface Props {
   params: Promise<{ id: string }>
 }
 
 export default async function EssayViewerPage({ params }: Props) {
   const { id } = await params
-  const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  // En mode démo, les données viennent du client (localStorage)
+  // On passe l'id au client qui récupère l'essay
+  if (!id) notFound()
 
-  const { data: essay } = await supabase
-    .from('essays')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!essay) notFound()
-
-  return <EssayViewerClient essay={essay} />
+  return <EssayViewerClient essayId={id} />
 }
