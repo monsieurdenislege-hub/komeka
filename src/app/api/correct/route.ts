@@ -1,6 +1,14 @@
-import { callOpenRouter, MODELS } from '@/lib/openrouter'
 import { getCorrectionSystemPrompt, getCorrectionUserPrompt } from '@/lib/prompts'
 import { NextRequest, NextResponse } from 'next/server'
+
+export const maxDuration = 60
+
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const MODELS = [
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'google/gemma-2-9b-it:free',
+]
 
 export async function POST(req: NextRequest) {
   const { subject, essay } = await req.json()
@@ -9,44 +17,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sujet et dissertation requis' }, { status: 400 })
   }
   if (essay.length < 100) {
-    return NextResponse.json({ error: 'La dissertation est trop courte (minimum 100 caractères)' }, { status: 400 })
+    return NextResponse.json({ error: 'Dissertation trop courte (min. 100 caractères)' }, { status: 400 })
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey || apiKey === 'placeholder_openrouter_key') {
-    return NextResponse.json({
-      error: 'Clé API OpenRouter manquante dans les variables d\'environnement Vercel.'
-    }, { status: 500 })
+  if (!apiKey || apiKey.startsWith('placeholder')) {
+    return NextResponse.json({ error: 'Clé API manquante — configurez OPENROUTER_API_KEY sur Vercel' }, { status: 500 })
   }
 
-  try {
-    const response = await callOpenRouter(
-      [
-        { role: 'system', content: getCorrectionSystemPrompt() },
-        { role: 'user', content: getCorrectionUserPrompt(subject, essay) },
-      ],
-      MODELS.correction,
-      false
-    )
+  const messages = [
+    { role: 'system' as const, content: getCorrectionSystemPrompt() },
+    { role: 'user' as const, content: getCorrectionUserPrompt(subject, essay) },
+  ]
 
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('OpenRouter error:', response.status, errText)
-      return NextResponse.json({ error: 'Erreur du service IA de correction' }, { status: 500 })
+  for (const model of MODELS) {
+    try {
+      const response = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://legebot.vercel.app',
+          'X-Title': 'Legebot',
+        },
+        body: JSON.stringify({ model, messages, stream: false, temperature: 0.5, max_tokens: 1500 }),
+      })
+
+      if (!response.ok) {
+        console.error(`Model ${model} failed (${response.status})`)
+        continue
+      }
+
+      const data = await response.json()
+      const content = data.choices?.[0]?.message?.content ?? ''
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) continue
+
+      const feedback = JSON.parse(jsonMatch[0])
+      return NextResponse.json({ feedback })
+    } catch (err) {
+      console.error(`Model ${model} threw:`, err)
+      continue
     }
-
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content ?? ''
-
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      return NextResponse.json({ error: 'Réponse IA invalide, réessayez' }, { status: 500 })
-    }
-
-    const feedback = JSON.parse(jsonMatch[0])
-    return NextResponse.json({ feedback })
-  } catch (err) {
-    console.error('Correct error:', err)
-    return NextResponse.json({ error: 'Erreur réseau vers le service IA' }, { status: 500 })
   }
+
+  return NextResponse.json({ error: 'Service IA indisponible, réessayez.' }, { status: 503 })
 }

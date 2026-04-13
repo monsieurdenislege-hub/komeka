@@ -1,6 +1,14 @@
-import { callOpenRouter, MODELS } from '@/lib/openrouter'
 import { getLearningSystemPrompt, getLearningUserPrompt } from '@/lib/prompts'
 import { NextRequest, NextResponse } from 'next/server'
+
+export const maxDuration = 60
+
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const MODELS = [
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'google/gemma-2-9b-it:free',
+]
 
 export async function POST(req: NextRequest) {
   const { subject } = await req.json()
@@ -9,37 +17,45 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey || apiKey === 'placeholder_openrouter_key') {
-    return NextResponse.json({
-      error: 'Clé API OpenRouter manquante dans les variables d\'environnement Vercel.'
-    }, { status: 500 })
+  if (!apiKey || apiKey.startsWith('placeholder')) {
+    return NextResponse.json({ error: 'Clé API manquante — configurez OPENROUTER_API_KEY sur Vercel' }, { status: 500 })
   }
 
-  try {
-    const response = await callOpenRouter(
-      [
-        { role: 'system', content: getLearningSystemPrompt() },
-        { role: 'user', content: getLearningUserPrompt(subject) },
-      ],
-      MODELS.learning,
-      true
-    )
+  const messages = [
+    { role: 'system' as const, content: getLearningSystemPrompt() },
+    { role: 'user' as const, content: getLearningUserPrompt(subject) },
+  ]
 
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('OpenRouter error:', response.status, errText)
-      return NextResponse.json({ error: 'Erreur du service IA vocal' }, { status: 500 })
+  for (const model of MODELS) {
+    try {
+      const response = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://legebot.vercel.app',
+          'X-Title': 'Legebot',
+        },
+        body: JSON.stringify({ model, messages, stream: true, temperature: 0.7, max_tokens: 3000 }),
+      })
+
+      if (!response.ok) {
+        console.error(`Model ${model} failed (${response.status})`)
+        continue
+      }
+
+      return new NextResponse(response.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'X-Accel-Buffering': 'no',
+        },
+      })
+    } catch (err) {
+      console.error(`Model ${model} threw:`, err)
+      continue
     }
-
-    return new NextResponse(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no',
-      },
-    })
-  } catch (err) {
-    console.error('Learn error:', err)
-    return NextResponse.json({ error: 'Erreur réseau vers le service IA' }, { status: 500 })
   }
+
+  return NextResponse.json({ error: 'Service IA indisponible, réessayez.' }, { status: 503 })
 }
