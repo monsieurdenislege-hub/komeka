@@ -5,20 +5,15 @@ import { NextRequest, NextResponse } from 'next/server'
 export const maxDuration = 60
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+// Modèles pas chers, classés du moins cher au plus cher
 const MODELS = [
-  'meta-llama/llama-3.2-3b-instruct:free',
-  'meta-llama/llama-3.2-1b-instruct:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-  'microsoft/phi-3-mini-128k-instruct:free',
-  'microsoft/phi-3-medium-128k-instruct:free',
-  'qwen/qwen-2.5-7b-instruct:free',
-  'qwen/qwen-2-7b-instruct:free',
-  'google/gemma-2-9b-it:free',
-  'mistralai/mistral-7b-instruct:free',
-  'huggingfaceh4/zephyr-7b-beta:free',
-  'openchat/openchat-7b:free',
-  'deepseek/deepseek-r1-distill-qwen-7b:free',
-  'nousresearch/nous-capybara-7b:free',
+  'deepseek/deepseek-chat',           // ~$0.07/M tokens — le moins cher
+  'google/gemini-flash-1.5',          // ~$0.075/M tokens
+  'google/gemini-flash-1.5-8b',       // encore moins cher
+  'meta-llama/llama-3.1-8b-instruct', // ~$0.05/M tokens
+  'mistralai/mistral-7b-instruct',    // ~$0.06/M tokens
+  'anthropic/claude-haiku-4-5',       // ~$0.25/M tokens — meilleure qualité
+  'openai/gpt-4o-mini',               // ~$0.15/M tokens
 ]
 
 export async function POST(req: NextRequest) {
