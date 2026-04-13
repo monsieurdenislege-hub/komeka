@@ -31,8 +31,7 @@ export async function GET() {
       .filter((m: { id: string; pricing?: { prompt: string } }) =>
         m.id.endsWith(':free') ||
         m.pricing?.prompt === '0' ||
-        m.pricing?.prompt === '0.0' ||
-        m.pricing?.prompt === 0
+        m.pricing?.prompt === '0.0'
       )
       .map((m: { id: string; name?: string; pricing?: { prompt: string; completion: string } }) => ({
         id: m.id,
